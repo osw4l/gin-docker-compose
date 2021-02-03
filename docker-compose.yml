@@ -1,0 +1,46 @@
+version: '3'
+
+services:
+  mongo_db:
+    image: mongo:4.1.9-xenial
+    restart: unless-stopped
+    env_file: .env
+    environment:
+      - MONGO_INITDB_ROOT_USERNAME=$MONGO_USERNAME
+      - MONGO_INITDB_ROOT_PASSWORD=$MONGO_PASSWORD
+    volumes:
+      - mongo_db_data:/data/db
+    networks:
+      - webnet
+    ports:
+      - '27000:27017'
+
+  backend:
+    depends_on:
+      - mongo_db
+    restart: on-failure
+    build: .
+    env_file: .env
+    command: bash -c "go run ./api/main.go"
+    volumes:
+      - .:/api
+    networks:
+      - webnet
+
+  nginx:
+    image: nginx:1.15.0
+    depends_on:
+      - backend
+    volumes:
+      - ./nginx:/etc/nginx/conf.d
+    ports:
+      - '6500:80'
+    networks:
+      - webnet
+
+
+volumes:
+  mongo_db_data:
+
+networks:
+  webnet:
